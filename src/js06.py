@@ -12,7 +12,7 @@ from multiprocessing import Process, Queue
 import multiprocessing as mp
 
 from PyQt5.QtGui import QPixmap, QPixmap, QIcon
-from PyQt5.QtWidgets import QApplication, QWidget, QFrame, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QFrame, QLabel, QFileDialog, QMessageBox
 from PyQt5.QtCore import QPoint, Qt, pyqtSlot, QTimer, QDateTime
 from PyQt5 import uic
 
@@ -98,6 +98,9 @@ class JS06MainWindow(QWidget):
         
         # 설정 버튼 클릭시 설정창 출력
         self.settings_button.clicked.connect(self.setting_btn_click)
+        
+        # 다운로드 버튼 클릭시 데이터 다운로드 실행
+        self.download_button.clicked.connect(self.download_btn_click)
         
         # 현재 실행 파일 위치 확인
         self.filepath = os.path.join(os.getcwd())
@@ -189,11 +192,11 @@ class JS06MainWindow(QWidget):
         # Error Note: 미세먼지 단위를 ini 파일에 넣으면 깨짐.
         concentration_text = save_path_info.get_data_path("SETTING","concentration_unit")
         pm_text = str(pm_value) + " ㎍/㎥"
-        self.c_pm_label.setText(pm_text)
+        # self.c_pm_label.setText(pm_text)
         
         
         
-        # influxdb에 시정 값 저장
+        # 시정 값 저장
         self.data_storage(ra_visibility)
         
         # vlc 상태 확인
@@ -245,6 +248,30 @@ class JS06MainWindow(QWidget):
         # self.logger.info(f"{self.running_ave_checked} Conversion done")
         
         self.q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
+        
+    @pyqtSlot()
+    def download_btn_click(self):
+        
+        csv_path = save_path_info.get_data_path("Path", "data_csv_path")
+        
+        csv_file, _ = QFileDialog.getOpenFileName(self, "CSV 파일 선택", csv_path, "CSV 파일 (*.csv)")
+        if csv_file:
+            excel_file, _ = QFileDialog.getSaveFileName(self, "Excel 파일 저장", os.path.splitext(csv_file)[0] + ".xlsx", "Excel 파일 (*.xlsx)")
+            if excel_file:
+                df = pd.read_csv(csv_file)
+                df.to_excel(excel_file, index=False)
+                QMessageBox.about(self, 'Success', '다운로드가 완료되었습니다.')
+            else:
+                pass
+        
+        else:
+            pass
+                
+        
+        
+        
+        
+        
 
     def keyPressEvent(self, e):
         """Override function QMainwindow KeyPressEvent that works when key is pressed"""

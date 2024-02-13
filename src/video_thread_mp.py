@@ -140,13 +140,14 @@ def producer(q):
                     if os.path.isfile(vis_file_path):
                         vis_df = pd.read_csv(vis_file_path)
                     else:
-                        cols = ["time",'visibility','pm2.5','ra_visibility']
+                        cols = ["time",'visibility','ra_visibility']
                         vis_df = pd.DataFrame(columns=cols)
                     
                     
                     dt_epoch = datetime.strptime(epoch[:-2], '%Y%m%d%H%M')
                     print("dt_epoch", dt_epoch)
-                    vis_df = vis_df.append({'time': dt_epoch,'visibility': visibility,'pm2.5': pm_value,'ra_visibility': ra_visibility}, ignore_index=True)
+                    new_df = pd.DataFrame({'time': dt_epoch,'visibility': visibility,'ra_visibility': ra_visibility}, index=[0])
+                    vis_df = pd.concat([vis_df, new_df])
                     # vis_df = pd.concat(vis_df, pd.DataFrame({'time': dt_epoch,'visibility': visibility,'pm2.5': pm_value,'ra_visibility': ra_visibility}), ignore_index=True)
                     print(vis_df.head())
                     vis_df.to_csv(vis_file_path,mode="w", index=False)

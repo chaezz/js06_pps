@@ -69,6 +69,47 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="download_button">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>80</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>80</width>
+         <height>80</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">
+#download_button
+{
+	background-image: url(./ui/icon/download.png);
+	background-color:rgb(27,49,70);
+	border:0px;
+	background-repeat: no-repeat
+}
+#download_button:pressed
+{
+	background-image: url(./ui/icon/download_on.png);
+	background-color:rgb(27,49,70);
+	background-repeat: no-repeat
+}
+#download_button:hover
+{
+	background-image: url(./ui/icon/download_on.png);
+	background-color:rgb(27,49,70);
+	background-repeat: no-repeat
+}</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="settings_button">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -443,7 +484,7 @@
               <string/>
              </property>
              <property name="pixmap">
-              <pixmap>icon/pm25_name.png</pixmap>
+              <pixmap>icon/rense_stat_name.png</pixmap>
              </property>
              <property name="alignment">
               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -491,7 +532,7 @@
 </string>
              </property>
              <property name="text">
-              <string>0㎍/㎥</string>
+              <string>Good</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
