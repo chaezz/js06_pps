@@ -164,7 +164,8 @@ class Tf_model():
         # 강도별 의미 정의
         CLASS_NAMES = ['0', '0.2', '0.4', '0.6', '0.8']
         # 거꾸로 반복문 시작(먼거리부터 시작)
-        for idx, dis_pre_val in enumerate(result_list[::-1]):
+        result_list.reverse()
+        for idx, dis_pre_val in enumerate(result_list):
             # 모델 결과값이 예스이면 거리 리턴
             if dis_pre_val[1] == label_pred:
                 
@@ -174,9 +175,9 @@ class Tf_model():
                     predicted_batch = self.cls_model.predict(dis_pre_val[2])
                     predicted_ids = np.argmax(predicted_batch, axis=-1)
                     predicted_class_names = CLASS_NAMES[predicted_ids[0]]
-                    print("predicted_class_names : ", predicted_class_names)
+                    print("idx : ", idx, "predicted_class_names : ", predicted_class_names)
                     c_val = float(result_list[idx-1][0]) - float(result_list[idx][0])
-                    
+                    print("c_val : ", c_val)
                     add_val = float(predicted_class_names) * c_val
                     
                     result_visibility = add_val + visibility
