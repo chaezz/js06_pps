@@ -169,35 +169,35 @@ class JS06MainWindow(QWidget):
             pass
         
            
-    @pyqtSlot(float, float)
-    def print_data(self, ra_visibility, pm_value):
+    @pyqtSlot(float)
+    def print_data(self, visibility):
         """ 메인 화면에 산출된 소산계수로 시정과 미세먼지를 계산 및 표시하는 함수"""
         
         # visibility_float = round(float(visibility), 3)
-        self.visibility_copy = ra_visibility
-        if ra_visibility == 0:
+        self.visibility_copy = visibility
+        if visibility == 0:
             self.data_storage(0)
             return
         
         self.radio_checked = save_path_info.get_data_path("SETTING","distance_unit")
         
         if self.radio_checked == None or self.radio_checked == "Km":
-            visibility_text = str(ra_visibility) + " km"
+            visibility_text = str(visibility) + " km"
         elif self.radio_checked == "Mile":
-            visibility_mile = round(ra_visibility / 1.609, 1)
+            visibility_mile = round(visibility / 1.609, 1)
             visibility_text = str(visibility_mile) + " mi"
         
         self.c_vis_label.setText(visibility_text)        
         
         # Error Note: 미세먼지 단위를 ini 파일에 넣으면 깨짐.
-        concentration_text = save_path_info.get_data_path("SETTING","concentration_unit")
-        pm_text = str(pm_value) + " ㎍/㎥"
+        # concentration_text = save_path_info.get_data_path("SETTING","concentration_unit")
+        # pm_text = str(pm_value) + " ㎍/㎥"
         # self.c_pm_label.setText(pm_text)
         
         
         
         # 시정 값 저장
-        self.data_storage(ra_visibility)
+        self.data_storage(visibility)
         
         # vlc 상태 확인
         self.get_status()

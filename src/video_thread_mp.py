@@ -59,19 +59,19 @@ def producer(q):
                     
                     
                                         
-                    if str(method) == "EXT":
+                    # if str(method) == "EXT":
                         
-                        dn_time = sun_observer.sun_observer(now_time)
+                    #     dn_time = sun_observer.sun_observer(now_time)
                         
-                        if dn_time == "daytime":
-                            visibility = target_info.minprint(epoch[:-2], left_range, right_range, distance, cv_img)
-                        else:
-                            visibility = tf_model.inference(epoch[:-2], left_range, right_range,
-                                                           distance, cv_img)
+                    #     if dn_time == "daytime":
+                    #         visibility = target_info.minprint(epoch[:-2], left_range, right_range, distance, cv_img)
+                    #     else:
+                    #         visibility = tf_model.inference(epoch[:-2], left_range, right_range,
+                    #                                        distance, cv_img)
                     
                         
-                    elif str(method) == "AI":
-                        visibility = tf_model.inference(epoch[:-2], left_range, right_range,
+                    # elif str(method) == "AI":
+                    visibility = tf_model.inference(epoch[:-2], left_range, right_range,
                                                            distance, cv_img)
                     
                     visibility = float(visibility)
@@ -96,35 +96,35 @@ def producer(q):
                     
                     visibility_float = round(visibility, 3)
                     print("visibility : ", visibility_float)
-                    q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
+                    # q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
                     
-                    if len(q_list) == 0 or q_list_scale != len(q_list):
-                        q_list = []
-                        for i in range(q_list_scale):
-                            q_list.append(visibility_float)
+                    # if len(q_list) == 0 or q_list_scale != len(q_list):
+                    #     q_list = []
+                    #     for i in range(q_list_scale):
+                    #         q_list.append(visibility_float)
                             
-                        # print("q 리스트 길이", len(q_list))
-                        # logger.info(f"q list length : {len(q_list)}")
-                        ra_visibility = np.mean(q_list)
-                    else:
-                        # logger.info(f"q list length : {len(q_list)}")
-                        q_list.pop(0)
-                        q_list.append(visibility_float)
-                        ra_visibility = np.mean(q_list)  
+                    #     # print("q 리스트 길이", len(q_list))
+                    #     # logger.info(f"q list length : {len(q_list)}")
+                    #     ra_visibility = np.mean(q_list)
+                    # else:
+                    #     # logger.info(f"q list length : {len(q_list)}")
+                    #     q_list.pop(0)
+                    #     q_list.append(visibility_float)
+                    #     ra_visibility = np.mean(q_list)  
                     
-                    ra_visibility = round(float(ra_visibility), 3)
-                    print("ra_visibility : ", ra_visibility)
-                    ext = 3.912 / ra_visibility
-                    hd = 89
-                    pm_value = round((ext*1000/4/2.5)/(1+5.67*((hd/100)**5.8)),2)
+                    # ra_visibility = round(float(ra_visibility), 3)
+                    # print("ra_visibility : ", ra_visibility)
+                    # ext = 3.912 / visibility_float
+                    # hd = 89
+                    # pm_value = round((ext*1000/4/2.5)/(1+5.67*((hd/100)**5.8)),2)
                     
-                    print("pm_value : ", pm_value)
+                    # print("pm_value : ", pm_value)
                     ####################### 시정 미세먼지 값 산출 #####################
                     
                     
                     # Queue에 ra_visibility, pm_value 넣기(메인 함수에 보내려고)
-                    q.put(ra_visibility)                                                    
-                    q.put(pm_value)                                                     
+                    q.put(visibility_float)                                                    
+                    # q.put(pm_value)                                                     
                     
                     
                     
@@ -140,13 +140,13 @@ def producer(q):
                     if os.path.isfile(vis_file_path):
                         vis_df = pd.read_csv(vis_file_path)
                     else:
-                        cols = ["time",'visibility','ra_visibility']
+                        cols = ["time",'visibility']
                         vis_df = pd.DataFrame(columns=cols)
                     
                     
                     dt_epoch = datetime.strptime(epoch[:-2], '%Y%m%d%H%M')
                     print("dt_epoch", dt_epoch)
-                    new_df = pd.DataFrame({'time': dt_epoch,'visibility': visibility,'ra_visibility': ra_visibility}, index=[0])
+                    new_df = pd.DataFrame({'time': dt_epoch,'visibility': visibility}, index=[0])
                     vis_df = pd.concat([vis_df, new_df])
                     # vis_df = pd.concat(vis_df, pd.DataFrame({'time': dt_epoch,'visibility': visibility,'pm2.5': pm_value,'ra_visibility': ra_visibility}), ignore_index=True)
                     print(vis_df.head())
@@ -161,7 +161,7 @@ def producer(q):
                 continue
 
 class CurveThread(QtCore.QThread):
-    update_visibility_signal = QtCore.pyqtSignal(float, float)
+    update_visibility_signal = QtCore.pyqtSignal(float)
 
     def __init__(self, src: str = "", file_type: str = "None", q: Queue = None):
         super().__init__()
@@ -181,10 +181,10 @@ class CurveThread(QtCore.QThread):
             while self._run_flag:
                 if not self.q.empty():
                     visibility = self.q.get()
-                    pm_value = self.q.get()
+                    # pm_value = self.q.get()
                     self.logger.info(f'visibility: {visibility}')
-                    self.logger.info(f'pm25_value: {pm_value}')
-                    self.update_visibility_signal.emit(visibility, pm_value)
+                    # self.logger.info(f'pm25_value: {pm_value}')
+                    self.update_visibility_signal.emit(visibility)
                     
             # shut down capture system
 

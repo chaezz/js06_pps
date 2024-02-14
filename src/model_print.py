@@ -29,7 +29,20 @@ class Tf_model():
             
 
         self.tf_model = self.load_model()
-        
+        self.cls_model = self.cls_load_model()
+    
+    def cls_load_model(self):
+        """" 모델을 불러오는 함수 """
+        # 저장된 모델 경로 입력
+        # model_path = "model_1654675043"
+        model_path = "C:/Users/user/Workspace/js02_marine/js02/x64/Release/model_3/fog_5steps_202206091604_1.000"
+        # 모델 불러오기
+        new_model = tf.keras.models.load_model(model_path, compile=False)
+        new_model.trainable = False
+        # print(new_model.summary())
+
+        # 모델 리턴
+        return new_model    
     
     def load_model(self):
         """" 모델을 불러오는 함수 """
@@ -121,7 +134,7 @@ class Tf_model():
         predicted_class_names_list = [CLASS_NAMES[predicted_ids[0]] for predicted_ids in predicted_ids_list]
 
         # 거리와 모델 값을 그룹화 후 거리별로 정렬
-        result_list = [[distance_val, pre_val, cv_img] for distance_val, pre_val, cv_img in zip(distance, predicted_class_names_list, image_list)]
+        result_list = [[distance_val, pre_val, tf_img] for distance_val, pre_val, tf_img in zip(distance, predicted_class_names_list, tf_image_list)]
         result_list.sort(key = lambda x : x[0])
         
         # 시정 계산
@@ -147,15 +160,37 @@ class Tf_model():
         
         label_pred = "y"
         check_point = 0
+        visibility = 0
+        # 강도별 의미 정의
+        CLASS_NAMES = ['0', '0.2', '0.4', '0.6', '0.8']
         # 거꾸로 반복문 시작(먼거리부터 시작)
-        for dis_pre_val in result_list[::-1]:
+        for idx, dis_pre_val in enumerate(result_list[::-1]):
             # 모델 결과값이 예스이면 거리 리턴
             if dis_pre_val[1] == label_pred:
+                
+                visibility = dis_pre_val[0]
+                
+                if idx > 0:
+                    predicted_batch = self.cls_model.predict(dis_pre_val[2])
+                    predicted_ids = np.argmax(predicted_batch, axis=-1)
+                    predicted_class_names = CLASS_NAMES[predicted_ids[0]]
+                    print("predicted_class_names : ", predicted_class_names)
+                    c_val = float(result_list[idx-1][0]) - float(result_list[idx][0])
+                    
+                    add_val = float(predicted_class_names) * c_val
+                    
+                    result_visibility = add_val + visibility
+                    print("result_visibility : ", result_visibility)
+                    
+                else:
+                    result_visibility = visibility
+                    pass
+                
                 # 거리가 20km 이상이면 20으로 제한
-                if dis_pre_val[0] > 20:
+                if result_visibility > 20:
                     return 20
                 else:
-                    return dis_pre_val[0]
+                    return result_visibility
             # 모델 결과값이 전부 노이면 최소거리 10m 리턴
             
         return 0.01
