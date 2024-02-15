@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-
+from datetime import datetime
 
 import tensorflow as tf
 
@@ -134,15 +134,16 @@ class Tf_model():
         predicted_class_names_list = [CLASS_NAMES[predicted_ids[0]] for predicted_ids in predicted_ids_list]
 
         # 거리와 모델 값을 그룹화 후 거리별로 정렬
-        result_list = [[distance_val, pre_val, tf_img] for distance_val, pre_val, tf_img in zip(distance, predicted_class_names_list, tf_image_list)]
-        result_list.sort(key = lambda x : x[0])
+        tf_result_list = [[distance_val, pre_val, tf_img] for distance_val, pre_val, tf_img in zip(distance, predicted_class_names_list, tf_image_list)]
+        tf_result_list.sort(key = lambda x : x[0])
         
         # 시정 계산
-        visibility = self.cal_visibility(result_list)
+        visibility = self.cal_visibility(tf_result_list)
         # visibility print
         print(f" visibility : ", visibility)
 
             
+        result_list = [[distance_val, pre_val, img] for distance_val, pre_val, img in zip(distance, predicted_class_names_list, image_list)]
         
         # 이미지 저장
         self.result_save(result_list, epoch, visibility)
@@ -206,21 +207,21 @@ class Tf_model():
             
             # target_save_path = os.path.join(save_path, str(distance))
             # os.makedirs(target_save_path, exist_ok=True)
-
-            no_target_save_path = os.path.join(save_path, "No")
-            yes_target_save_path = os.path.join(save_path, "Yes")
+            today = datetime.now().strftime("%Y%m%d")
+            no_target_save_path = os.path.join(save_path, "No", today)
+            yes_target_save_path = os.path.join(save_path, "Yes", today)
             os.makedirs(no_target_save_path, exist_ok=True)
             os.makedirs(yes_target_save_path, exist_ok=True)
 
-            if int(epoch[-2:]) % 5 == 00:
-                if predict_idx == "n":
+            # if int(epoch[-2:]) % 1 == 00:
+            if predict_idx == "n":
 
-                    image_path = os.path.join(no_target_save_path, f"{epoch}_{distance}_{predict_idx}_{visibility}.png")
-                else:
-                    image_path = os.path.join(yes_target_save_path, f"{epoch}_{distance}_{predict_idx}_{visibility}.png")
+                image_path = os.path.join(no_target_save_path, f"{epoch}_{distance}_{predict_idx}_{visibility}.png")
+            else:
+                image_path = os.path.join(yes_target_save_path, f"{epoch}_{distance}_{predict_idx}_{visibility}.png")
 
-                cv2.imwrite(image_path, cv_img)
-                print(image_path, " : image save")
+            cv2.imwrite(image_path, cv_img)
+            print(image_path, " : image save")
 
 
 

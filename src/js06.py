@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QFrame, QLabel, QFileDialog, 
 from PyQt5.QtCore import QPoint, Qt, pyqtSlot, QTimer, QDateTime
 from PyQt5 import uic
 
+from auto_remove_thread import Auto_Remove_Thread
 from video_thread_mp import CurveThread
 import video_thread_mp
 # import save_db
@@ -105,10 +106,16 @@ class JS06MainWindow(QWidget):
         # 현재 실행 파일 위치 확인
         self.filepath = os.path.join(os.getcwd())
         
-        # 구름 애니메이션
-        # self.cloud_icon = Weather_Icon(self)
-        # self.cloud_icon.setGeometry(940,650,120,80)
-        
+        # 파일을 자동 삭제하는 쓰레드 선언
+        self.delete_thread = Auto_Remove_Thread()
+        # # 쓰레드와 시정, 미세먼지 출력 함수를 Signal 연결
+        self.delete_thread.update_remove_signal.connect(self.print_result)
+        # # 쓰레드 시작
+        self.delete_thread.start()
+
+    @pyqtSlot(str)
+    def print_result(self, result):
+        print(result)
         
         
         
