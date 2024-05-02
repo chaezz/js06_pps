@@ -7,7 +7,7 @@ import pandas as pd
 import scipy
 from scipy.optimize import curve_fit
 
-import js06_log
+import st01_log
 
 curved_flag = True
 # cam_name = cam_name
@@ -17,7 +17,7 @@ hanhwa_r = []
 hanhwa_g = []
 hanhwa_b = []
 
-logger = js06_log.CreateLogger(__name__)
+logger = st01_log.CreateLogger(__name__)
 
 def select_max_rgb(r, g, b):
 

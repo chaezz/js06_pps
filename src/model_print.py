@@ -10,10 +10,13 @@ from datetime import datetime
 import tensorflow as tf
 
 import save_path_info
+import st01_log
 
 class Tf_model():
     
     def __init__(self):
+        
+        self.logger = st01_log.CreateLogger(__name__)
         
         # tfmodel use gpu
         gpus = tf.config.list_physical_devices('GPU')
@@ -23,6 +26,7 @@ class Tf_model():
                 tf.config.set_logical_device_configuration(
                     gpus[0],
                     [tf.config.LogicalDeviceConfiguration(memory_limit=6144)])
+                self.logger.info(f'Set GPU Device num: {gpus[0]}')
             except RuntimeError as e:
                 # 프로그램 시작시에 가상 장치가 설정되어야만 합니다
                 print(e)
@@ -35,10 +39,11 @@ class Tf_model():
         """" 모델을 불러오는 함수 """
         # 저장된 모델 경로 입력
         # model_path = "model_1654675043"
-        model_path = "C:/Users/user/Workspace/js02_marine/js02/x64/Release/model_3/fog_5steps_202206091604_1.000"
+        model_path = "js02_model/fog_5steps_202206091604_1.000"
         # 모델 불러오기
         new_model = tf.keras.models.load_model(model_path, compile=False)
         new_model.trainable = False
+        self.logger.info(f'Load cls_model')
         # print(new_model.summary())
 
         # 모델 리턴
@@ -48,12 +53,12 @@ class Tf_model():
         """" 모델을 불러오는 함수 """
         # 저장된 모델 경로 입력
         # model_path = "model_1654675043"
-        model_path = "./js02_model/andrew_20230426_1682499792"
+        model_path = "js02_model/andrew_20230426_1682499792"
         # 모델 불러오기
         new_model = tf.keras.models.load_model(model_path, compile=False)
         new_model.trainable = False
         # print(new_model.summary())
-
+        self.logger.info(f'Load visible_model')
         # 모델 리턴
         return new_model
 
@@ -88,6 +93,7 @@ class Tf_model():
         
         
         print("inferece start")
+        self.logger.info(f'inferece start')
         start_time = time.time()
         visibility = 0
         cp_image = cv_img.copy()

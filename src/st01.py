@@ -21,17 +21,17 @@ from video_thread_mp import CurveThread
 import video_thread_mp
 # import save_db
 import save_path_info
-from js06_settings import JS06_Setting_Widget
+from st01_settings import ST01_Setting_Widget
 from visibility_widget import Vis_Chart
-import js06_log
+import st01_log
 
-class JS06MainWindow(QWidget):
+class ST01MainWindow(QWidget):
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         ui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                               "ui/js06_1920_grid_test.ui")
+                               "ui/st01_1920_grid_test.ui")
         uic.loadUi(ui_path, self)
         appIcon = QIcon('logo.png')
         self.setWindowIcon(appIcon)
@@ -49,8 +49,9 @@ class JS06MainWindow(QWidget):
         self.q_list = []
         self.q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
         self.rtsp_path = None
-        self.logger = js06_log.CreateLogger(__name__)
+        self.logger = st01_log.CreateLogger(__name__)
         self.vis_list = []
+        self.dlg = None
         
         # # JS06의 설정 정보들을 초기화 하거나 이미 있으면 패쓰
         # if os.path.isfile("D:/path_info/path_info.csv"):
@@ -117,8 +118,6 @@ class JS06MainWindow(QWidget):
     def print_result(self, result):
         print(result)
         
-        
-        
     
     @pyqtSlot(str)
     def onCameraChange(self, url, camera_name, src_type):
@@ -128,10 +127,10 @@ class JS06MainWindow(QWidget):
         # Vlc 옵션 설정
         args = [
             "--rtsp-frame-buffer-size",
-            "1500000"
+            "500000"
         ]
 
-        self.instance = vlc.Instance()
+        self.instance = vlc.Instance("--rtsp-frame-buffer-size=500000")
         # self.instance.log_open()
         # self.instance.log_unset()
         # fopen = ctypes.cdll.msvcrt.fopen
@@ -142,8 +141,7 @@ class JS06MainWindow(QWidget):
         # current_time = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
         # f = fopen(bytes(f'vlc_log_{current_time}.log', encoding='utf-8'), b'w')
         
-        # self.instance.log_set_file(f)
-        
+        # self.instance.log_set_file(f)        
         
         self.media_player = self.instance.media_player_new()
         
@@ -176,15 +174,14 @@ class JS06MainWindow(QWidget):
             pass
         
            
-    @pyqtSlot(float)
-    def print_data(self, visibility):
+    @pyqtSlot(float, str)
+    def print_data(self, visibility, lens_state):
         """ 메인 화면에 산출된 소산계수로 시정과 미세먼지를 계산 및 표시하는 함수"""
+        
         
         # visibility_float = round(float(visibility), 3)
         self.visibility_copy = visibility
-        if visibility == 0:
-            self.data_storage(0)
-            return
+
         
         self.radio_checked = save_path_info.get_data_path("SETTING","distance_unit")
         
@@ -195,7 +192,7 @@ class JS06MainWindow(QWidget):
             visibility_text = str(visibility_mile) + " mi"
         
         self.c_vis_label.setText(visibility_text)        
-        
+        self.c_pm_label.setText(lens_state)
         # Error Note: 미세먼지 단위를 ini 파일에 넣으면 깨짐.
         # concentration_text = save_path_info.get_data_path("SETTING","concentration_unit")
         # pm_text = str(pm_value) + " ㎍/㎥"
@@ -228,34 +225,34 @@ class JS06MainWindow(QWidget):
     @pyqtSlot()
     def setting_btn_click(self):
         """ 설정 버튼 클릭 이벤트를 했을 때 환경설정(Setting) 창을 띄우는 함수 """
-        if self.radio_checked == None:
-            dlg = JS06_Setting_Widget("Km")
-        else:
-            dlg = JS06_Setting_Widget(self.radio_checked)
-        dlg.show()
-        dlg.setWindowModality(Qt.ApplicationModal)
-        dlg.deleteLater()
-        dlg.exec_()
+        if self.dlg is None or not self.dlg.isEnabled():
+            if self.radio_checked == None:
+                self.dlg = ST01_Setting_Widget("Km")
+            else:
+                self.dlg = ST01_Setting_Widget(self.radio_checked)
+            self.dlg.show()
+            self.dlg.setWindowModality(Qt.ApplicationModal)
+            self.dlg.exec_()
+
         
-        
-        self.radio_checked = dlg.radio_flag
-        print(self.radio_checked, "변환 완료")
-        self.logger.info(f"{self.radio_checked} Conversion done")
-        
-        if self.radio_checked == None or self.radio_checked == "Km":
-            visibility_text = str(self.visibility_copy) + " km"
-        elif self.radio_checked == "Mile":
-            visibility_mile = round(self.visibility_copy / 1.609, 1)
-            visibility_text = str(visibility_mile) + " mi"
+            self.radio_checked = self.dlg.radio_flag
+            self.dlg = None
+            print(self.radio_checked, "변환 완료")
+            self.logger.info(f"{self.radio_checked} Conversion done")
             
-        self.c_vis_label.setText(visibility_text)
-        
-        # self.running_ave_checked = dlg.running_ave_checked
-        # print(self.running_ave_checked, "변환 완료")
-        # self.logger.info(f"{self.running_ave_checked} Conversion done")
-        
-        self.q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
-        
+            if self.radio_checked == None or self.radio_checked == "Km":
+                visibility_text = str(self.visibility_copy) + " km"
+            elif self.radio_checked == "Mile":
+                visibility_mile = round(self.visibility_copy / 1.609, 1)
+                visibility_text = str(visibility_mile) + " mi"
+                
+            self.c_vis_label.setText(visibility_text)
+            
+            # self.running_ave_checked = dlg.running_ave_checked
+            # print(self.running_ave_checked, "변환 완료")
+            # self.logger.info(f"{self.running_ave_checked} Conversion done")
+            
+            self.q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
     @pyqtSlot()
     def download_btn_click(self):
         
@@ -290,7 +287,7 @@ class JS06MainWindow(QWidget):
             self.widget_toggle_flag()
         
     def widget_toggle_flag(self):
-        """ JS06 메인 화면 풀 스크린 토글 기능 함수"""
+        """ ST01 메인 화면 풀 스크린 토글 기능 함수"""
         if self.windowState() & Qt.WindowFullScreen:
             self.showNormal()
             self.logger.info(f"View in normal screen")
@@ -300,11 +297,33 @@ class JS06MainWindow(QWidget):
 
 if __name__ == '__main__':    
     
+    logger = st01_log.CreateLogger(__name__)
+    
+    import re
+    import uuid
+    import sys
+
+    # 여기에 허용할 MAC 주소를 설정하세요.
+    # ALLOWED_MAC_ADDRESS = '00-1A-7D-DA-71-0B'
+    ALLOWED_MAC_ADDRESS = '74-56-3C-7A-BE-65'
+
+    # 현재 시스템의 MAC 주소를 가져오는 함수
+
+    # 현재 MAC 주소를 확인
+    current_mac = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
+    
+    # 허용된 MAC 주소와 비교
+    if current_mac.lower() == ALLOWED_MAC_ADDRESS.lower():
+        logger.info(f'Start ST01 Program')
+        pass
+        # 여기에 실행하고 싶은 주 코드를 작성하세요.
+    else:
+        logger.error(f'error_code(4245)')
+        print("error_code(4245)")
+        sys.exit(1)  # 프로그램 종료
+    
     # MultiProcess 선언
     # MultiProcess의 프로세스 수 고정
-    logger = js06_log.CreateLogger(__name__)
-    logger.info(f'Start JS06 Program')
-    
     mp.freeze_support()
     q = Queue()
     p = Process(name="producer", target=video_thread_mp.producer, args=(q, ), daemon=True)
@@ -312,10 +331,10 @@ if __name__ == '__main__':
     p.start()
     
     
-    # JS06 메인 윈도우 실행
+    # ST01 메인 윈도우 실행
     app = QApplication(sys.argv)
-    ui = JS06MainWindow()
+    ui = ST01MainWindow()
     ui.show()
-    logger.info(f'Open JS06 main winodw ')
+    logger.info(f'Open ST01 main winodw ')
     sys.exit(app.exec_())
     

@@ -61,7 +61,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap>icon/company_product_name_logo.png</pixmap>
+        <pixmap>../src/ui/icon/st_company_product_name_logo.png</pixmap>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>

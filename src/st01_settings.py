@@ -22,15 +22,15 @@ from PyQt5.QtChart import QChart, QChartView, QLineSeries, QValueAxis
 import target_info
 import save_path_info
 
-import js06_log
+import st01_log
 
-class JS06_Setting_Widget(QDialog):
+class ST01_Setting_Widget(QDialog):
 
     def __init__(self, radio_flag=None, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         ui_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                               "ui/js06_settings.ui")
+                               "ui/st01_settings.ui")
         uic.loadUi(ui_path, self)
         appIcon = QIcon('logo.png')
         self.setWindowIcon(appIcon)
@@ -64,7 +64,7 @@ class JS06_Setting_Widget(QDialog):
         self.x = None
         self.chart_view = None
         self.rtsp_path = None
-        self.logger = js06_log.CreateLogger(__name__)
+        self.logger = st01_log.CreateLogger(__name__)
         self.logger.info('Setup window initialization complete')
         
         # self.running_ave_checked = run_ave_flag
@@ -656,7 +656,7 @@ class JS06_Setting_Widget(QDialog):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     # MainWindow = QMainWindow()
-    ui = JS06_Setting_Widget()
+    ui = ST01_Setting_Widget()
     # ui.setupUi(MainWindow)
     ui.show()
     sys.exit(app.exec_())

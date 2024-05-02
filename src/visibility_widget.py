@@ -7,7 +7,7 @@ from PyQt5.QtCore import QPoint, QRect, Qt, QRectF, QSize, QCoreApplication, pyq
 from PyQt5.QtChart import QChart, QChartView, QLineSeries, QValueAxis, QDateTimeAxis, QScatterSeries
 
 # from influxdb import InfluxDBClient
-import js06_log
+import st01_log
 
 # class ValueWorker(QThread):   
 #     """Influx에 저장된 시정 값을 읽어 실시간 시정 출력 그래프에 전송하는 QThread 클래스"""
@@ -17,7 +17,7 @@ import js06_log
 #         super().__init__()
 #         self.value = value
 #         self.alive = True
-#         self.logger = js06_log.CreateLogger(__name__)
+#         self.logger = st01_log.CreateLogger(__name__)
         
         
 #     def run(self):
@@ -175,7 +175,7 @@ class Vis_Chart(QWidget):
         # QThread 시작
         # self.pw.start()
         
-        self.logger = js06_log.CreateLogger(__name__)
+        self.logger = st01_log.CreateLogger(__name__)
         self.logger.info("Success drawing the visibility chart")
         
     
@@ -186,7 +186,6 @@ class Vis_Chart(QWidget):
             self.vis_scatter.remove(0)
             self.vis_scatter_2.remove(0)
         dt = QDateTime.currentDateTime()
-        print("QDate time",dt)
         self.vis_series.append(dt.toMSecsSinceEpoch(), value)
         self.vis_scatter.append(dt.toMSecsSinceEpoch(), value)
         self.vis_scatter_2.append(dt.toMSecsSinceEpoch(), value)
@@ -200,7 +199,6 @@ class Vis_Chart(QWidget):
             dtLast = QDateTime.fromMSecsSinceEpoch(int(pvs[-1].x()))
         else:
             dtLast = dtStart.addSecs(self.viewLimit)
-        print("qchart recent time : ", dtLast)
         ax = self.chart.axisX()
         ax.setRange(dtStart, dtLast)
         # return chart_view

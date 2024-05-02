@@ -9,9 +9,9 @@ import cv2
 import time
 import cal_ext_coef
 import save_path_info
-import js06_log
+import st01_log
 
-logger = js06_log.CreateLogger(__name__)
+logger = st01_log.CreateLogger(__name__)
 
 def minprint(epoch, left_range, right_range, distance, cv_img):
     """A function that outputs pixels for calculating the dissipation coefficient in the specified areas"""
