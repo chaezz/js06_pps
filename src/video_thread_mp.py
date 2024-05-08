@@ -96,14 +96,14 @@ def producer(q):
                     visibility_str = tf_model.inference(epoch[:-2], left_range, right_range,
                                                            distance, cv_img)
                     logger.info(f'inferece end, visibility : {visibility_str}')
-                    visibility = float(visibility_str)
+                    visibility = round(float(visibility_str), 3)
                     ############################ 이미지 저장 #########################
                     img_path = save_path_info.get_data_path('Path', 'image_save_path')
                     img_path = os.path.join(img_path, epoch[:-6])
                     
                     os.makedirs(img_path, exist_ok=True)
                     
-                    cv2.imwrite(f'{img_path}/{epoch[:-2]}.jpg', cv_img)
+                    cv2.imwrite(f'{img_path}/{epoch[:-2]}_{visibility}_{ls_text}.jpg', cv_img)
                     logger.info(f"image_save : {img_path}/{epoch[:-2]}.jpg")
                     
                     cap.release()
