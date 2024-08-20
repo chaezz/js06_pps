@@ -304,7 +304,9 @@ if __name__ == '__main__':
     import sys
 
     # 여기에 허용할 MAC 주소를 설정하세요.
+    # SM-PC MAC
     ALLOWED_MAC_ADDRESS = '00-1A-7D-DA-71-0B'
+    # 제주도 국제기상과학원 MAC
     # ALLOWED_MAC_ADDRESS = '74-56-3C-7A-BE-65'
 
     # 현재 시스템의 MAC 주소를 가져오는 함수
