@@ -171,7 +171,16 @@ def save_rgb_value(value_list, distance_list, ext_value, select_color, epoch):
     
     visibility_value = 3.912/ext_value
     
-    rgb_df = rgb_df.append({'time': dt_epoch,'target_distance':distance_list,'intensity_val':value_list,'ext_coeff':ext_value, 'visibility':visibility_value}, ignore_index=True)
+    new_row = pd.DataFrame({
+    'time': [dt_epoch],
+    'target_distance': [distance_list],
+    'intensity_val': [value_list],
+    'ext_coeff': [ext_value],
+    'visibility': [visibility_value]
+    })
+
+    # 기존 데이터프레임과 새로운 데이터프레임을 concat으로 결합
+    rgb_df = pd.concat([rgb_df, new_row], ignore_index=True)
     
     rgb_df.to_csv(rgb_file_path,mode="w", index=False)
     print(f"Save {select_color} channel value")
@@ -200,7 +209,16 @@ def save_ext(ext_list, epoch):
         ext_df = pd.DataFrame(columns=cols)
     
     dt_epoch = datetime.strptime(epoch, '%Y%m%d%H%M')
-    ext_df = ext_df.append({'time': dt_epoch,'r_ext':ext_list[0],'g_ext':ext_list[1],'b_ext':ext_list[2]}, ignore_index=True)
+    # 새로운 행을 딕셔너리로 만들고 이를 데이터프레임으로 변환
+    new_row = pd.DataFrame({
+        'time': [dt_epoch],
+        'r_ext': [ext_list[0]],
+        'g_ext': [ext_list[1]],
+        'b_ext': [ext_list[2]]
+    })
+
+    # 기존 데이터프레임과 새로운 데이터프레임을 concat으로 결합
+    ext_df = pd.concat([ext_df, new_row], ignore_index=True)
     
     ext_df.to_csv(ext_file_path,mode="w", index=False)
     

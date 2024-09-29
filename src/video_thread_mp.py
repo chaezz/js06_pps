@@ -16,7 +16,7 @@ import target_info
 import save_path_info
 import st01_log
 from model_print import Tf_model
-# import sun_observer
+import sun_observer
 
 
 logger = st01_log.CreateLogger(__name__)
@@ -81,22 +81,27 @@ def producer(q):
                     else:                    
                         pass
                                         
-                    # if str(method) == "EXT":
+                    if str(method) == "EXT":
                         
-                    #     dn_time = sun_observer.sun_observer(now_time)
+                        dn_time = sun_observer.sun_observer(now_time)
                         
-                    #     if dn_time == "daytime":
-                    #         visibility = target_info.minprint(epoch[:-2], left_range, right_range, distance, cv_img)
-                    #     else:
-                    #         visibility = tf_model.inference(epoch[:-2], left_range, right_range,
-                    #                                        distance, cv_img)
+                        if dn_time == "daytime":
+                            visibility = target_info.minprint(epoch[:-2], left_range, right_range, distance, cv_img)
+                        else:
+                            visibility = tf_model.inference(epoch[:-2], left_range, right_range,
+                                                           distance, cv_img)
+                        visibility = round(float(visibility), 3)
+                        print("visibility : ", visibility)
+                        
+                            
+                            
                     
                         
-                    # elif str(method) == "AI":
-                    visibility_str = tf_model.inference(epoch[:-2], left_range, right_range,
-                                                           distance, cv_img)
-                    logger.info(f'inferece end, visibility : {visibility_str}')
-                    visibility = round(float(visibility_str), 3)
+                    elif str(method) == "AI":
+                        visibility_str = tf_model.inference(epoch[:-2], left_range, right_range,
+                                                            distance, cv_img)
+                        logger.info(f'inferece end, visibility : {visibility_str}')
+                        visibility = round(float(visibility_str), 3)
                     ############################ 이미지 저장 #########################
                     img_path = save_path_info.get_data_path('Path', 'image_save_path')
                     img_path = os.path.join(img_path, epoch[:-6])

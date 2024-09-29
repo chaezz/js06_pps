@@ -305,7 +305,7 @@ if __name__ == '__main__':
 
     # 여기에 허용할 MAC 주소를 설정하세요.
     # SM-PC MAC
-    ALLOWED_MAC_ADDRESS = '00-1A-7D-DA-71-0B'
+    ALLOWED_MAC_ADDRESS = '2C-FD-A1-BB-19-D7'
     # 제주도 국제기상과학원 MAC
     # ALLOWED_MAC_ADDRESS = '74-56-3C-7A-BE-65'
 
@@ -313,7 +313,7 @@ if __name__ == '__main__':
 
     # 현재 MAC 주소를 확인
     current_mac = '-'.join(re.findall('..', '%012x' % uuid.getnode()))
-    
+
     # 허용된 MAC 주소와 비교
     if current_mac.lower() == ALLOWED_MAC_ADDRESS.lower():
         logger.info(f'Start ST01 Program')
