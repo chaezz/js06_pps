@@ -1114,6 +1114,19 @@ p, li { white-space: pre-wrap; }
     </property>
    </widget>
   </widget>
+  <widget class="QPushButton" name="Image_change_btn">
+   <property name="geometry">
+    <rect>
+     <x>1100</x>
+     <y>30</y>
+     <width>111</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Image Change</string>
+   </property>
+  </widget>
   <zorder>tableWidget</zorder>
   <zorder>no_target_label</zorder>
   <zorder>buttonBox</zorder>
@@ -1152,6 +1165,7 @@ p, li { white-space: pre-wrap; }
   <zorder>label_progressBar_3</zorder>
   <zorder>cal_method_setting</zorder>
   <zorder>groupBox_2</zorder>
+  <zorder>Image_change_btn</zorder>
  </widget>
  <resources/>
  <connections>

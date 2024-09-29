@@ -21,6 +21,7 @@ from PyQt5.QtChart import QChart, QChartView, QLineSeries, QValueAxis
 
 import target_info
 import save_path_info
+from setting_target_type import TargetTypeDialog
 
 import st01_log
 
@@ -64,6 +65,7 @@ class ST01_Setting_Widget(QDialog):
         self.x = None
         self.chart_view = None
         self.rtsp_path = None
+        self.target_type = []
         self.logger = st01_log.CreateLogger(__name__)
         self.logger.info('Setup window initialization complete')
         
@@ -111,7 +113,7 @@ class ST01_Setting_Widget(QDialog):
         elif self.cal_radio_flag == "AI":
             self.ai_radio_btn.setChecked(True)
         
-        self.target_name, self.left_range, self.right_range, self.distance = target_info.get_target(cam_name)
+        self.target_name, self.left_range, self.right_range, self.distance, self.target_type = target_info.get_target(cam_name)
     
         if run_ave == "10":
             self.ten_radio_btn.setChecked(True)
@@ -156,6 +158,7 @@ class ST01_Setting_Widget(QDialog):
         self.five_radio_btn.clicked.connect(self.running_avr_time_settings_function)
         self.ten_radio_btn.clicked.connect(self.running_avr_time_settings_function)
     
+        self.image_ch_btn.clicked.connect(self.select_image_file)
 
     # path_setting
     def data_path_folder_open(self):
@@ -222,24 +225,44 @@ class ST01_Setting_Widget(QDialog):
         
     def chart_draw(self):
         """세팅창 그래프 칸에 소산계수 차트를 그리는 함수"""
-        # data
-        global x   
         
-        # if self.x is None:
-        self.logger.debug(f'distance list : {str(self.distance)}')
-        print("distance 리스트", self.distance)
+        # 타겟 정보 가져오기 (타겟 이름, 좌표, 거리, 타겟 유형)
+        _, _, _, distance, target_type = target_info.get_target(camera_name=save_path_info.get_data_path('SETTING', 'camera_name'))
         
-        self.x = np.linspace(self.distance[0], self.distance[-1], 100, endpoint=True)
+         # 낮 타겟 및 공통 타겟 필터링
+        day_indices = [i for i, t_type in enumerate(target_type) if t_type == "daytime" or t_type == "common"]
+        
+        if len(day_indices) == 0:
+            print("낮 타겟 또는 공통 타겟이 없습니다.")
+            return
+        
+        # day_indices에 해당하는 낮 및 공통 타겟만 필터링
+        day_distances = [distance[i] for i in day_indices]
+        r_list_filtered = [self.r_list[i] for i in day_indices]
+        g_list_filtered = [self.g_list[i] for i in day_indices]
+        b_list_filtered = [self.b_list[i] for i in day_indices]
+        
+        # 데이터가 충분한지 확인
+        if len(day_distances) < 2:
+            print("필터링된 데이터가 부족합니다.")
+            return
+        
+        # 데이터 준비
+        self.logger.debug(f'distance list : {str(day_distances)}')
+        print("distance 리스트", day_distances)
+        
+        self.x = np.linspace(day_distances[0], day_distances[-1], 100, endpoint=True)
         self.x.sort()
         
-        hanhwa_opt_r, hanhwa_cov_r = curve_fit(self.func, self.distance, self.r_list, maxfev=5000)
-        hanhwa_opt_g, hanhwa_cov_g = curve_fit(self.func, self.distance, self.g_list, maxfev=5000)
-        hanhwa_opt_b, hanhwa_cov_b = curve_fit(self.func, self.distance, self.b_list, maxfev=5000)
+        hanhwa_opt_r, hanhwa_cov_r = curve_fit(self.func, day_distances, r_list_filtered, maxfev=5000)
+        hanhwa_opt_g, hanhwa_cov_g = curve_fit(self.func, day_distances, g_list_filtered, maxfev=5000)
+        hanhwa_opt_b, hanhwa_cov_b = curve_fit(self.func, day_distances, b_list_filtered, maxfev=5000)
+    
         
-        # chart object
+        # 차트 객체 생성
         chart = QChart()
         font = QFont()
-        font.setPixelSize(20)        
+        font.setPixelSize(20)
         font.setBold(3)
         chart.setTitleFont(font)
         chart.setTitleBrush(QBrush(QColor("white")))
@@ -247,20 +270,18 @@ class ST01_Setting_Widget(QDialog):
         chart.layout().setContentsMargins(0,0,0,0)
         chart.setBackgroundRoundness(0)
         
-        
         chart.setTitle('Extinction coefficient Graph')
-        
+
         axisBrush = QBrush(QColor("white"))
         
-        # chart.createDefaultAxes()
         axis_x = QValueAxis()
         axis_x.setTickCount(7)
         axis_x.setLabelFormat("%i")
         axis_x.setTitleText("Distance(km)")
-        axis_x.setRange(0,50)        
+        axis_x.setRange(0, max(day_distances))  # X축 범위를 낮 타겟 거리로 설정
         axis_x.setLabelsBrush(axisBrush)
-        axis_x.setTitleBrush(axisBrush)     
-        chart.addAxis(axis_x, Qt.AlignBottom)        
+        axis_x.setTitleBrush(axisBrush)
+        chart.addAxis(axis_x, Qt.AlignBottom)    
         
         axis_y = QValueAxis()
         axis_y.setTickCount(7)
@@ -268,12 +289,11 @@ class ST01_Setting_Widget(QDialog):
         axis_y.setTitleText("Intensity")
         axis_y.setRange(0, 255)
         axis_y.setLabelsBrush(axisBrush)
-        axis_y.setTitleBrush(axisBrush)           
+        axis_y.setTitleBrush(axisBrush)
         chart.addAxis(axis_y, Qt.AlignLeft)
         
         # Red Graph
         if self.red_checkBox.isChecked():
-        
             series1 = QLineSeries()
             series1.setName("Red")
             pen = QPen()
@@ -283,48 +303,44 @@ class ST01_Setting_Widget(QDialog):
             
             for dis in self.x:
                 series1.append(*(dis, self.func(dis, *hanhwa_opt_r)))
-            chart.addSeries(series1) # data feeding  
+            chart.addSeries(series1)  # 데이터 추가
             series1.attachAxis(axis_x)
             series1.attachAxis(axis_y)
         
         # Green Graph
         if self.green_checkBox.isChecked():
-        
             series2 = QLineSeries()
             series2.setName("Green")
             pen = QPen()
             pen.setWidth(4)
-            series2.setPen(pen)   
-            series2.setColor(QColor("Green")) 
+            series2.setPen(pen)
+            series2.setColor(QColor("Green"))
             for dis in self.x:
                 series2.append(*(dis, self.func(dis, *hanhwa_opt_g)))
-            chart.addSeries(series2)  # data feeding
-            
+            chart.addSeries(series2)
             series2.attachAxis(axis_x)
-            series2.attachAxis(axis_y)  
-            
-
+            series2.attachAxis(axis_y)
+        
         # Blue Graph
         if self.blue_checkBox.isChecked():
             series3 = QLineSeries()
-            series3.setName("Blue")  
+            series3.setName("Blue")
             pen = QPen()
             pen.setWidth(4)
-            series3.setPen(pen)   
+            series3.setPen(pen)
             series3.setColor(QColor("Blue"))
             for dis in self.x:
                 series3.append(*(dis, self.func(dis, *hanhwa_opt_b)))
-            chart.addSeries(series3)  # data feeding
-            
+            chart.addSeries(series3)
             series3.attachAxis(axis_x)
-            series3.attachAxis(axis_y) 
+            series3.attachAxis(axis_y)
         
-        # legend
+        # Legend 설정
         chart.legend().setAlignment(Qt.AlignRight)
         chart.legend().setLabelBrush(axisBrush)
         
-        # displaying chart
-        chart.setBackgroundBrush(QBrush(QColor(22,32,42)))
+        # Chart display 설정
+        chart.setBackgroundBrush(QBrush(QColor(22, 32, 42)))
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QPainter.Antialiasing)
         
@@ -375,28 +391,44 @@ class ST01_Setting_Widget(QDialog):
             cap = cv2.VideoCapture(src)
             ret, cv_img = cap.read()
             cp_image = cv_img.copy()
+            if ret:
+                self.display_image(cv_img)  # 이미지 표시 함수 호출
             cap.release()
         except Exception as e:
             print(e)
             self.image_load()
             
-        self.target_setting_image_label.setPixmap(self.convert_cv_qt(cp_image))
+        # self.target_setting_image_label.setPixmap(self.convert_cv_qt(cp_image))
+    
+    def select_image_file(self):
+        """파일 다이얼로그를 통해 로컬 이미지 파일 선택 및 표시"""
+        file_name, _ = QFileDialog.getOpenFileName(self, "이미지 파일 선택", "", "Image Files (*.png *.jpg *.bmp)")
+        if file_name:
+            # 한글 경로 처리: 파일을 바이너리로 읽어들여 OpenCV에서 디코딩
+            try:
+                with open(file_name, 'rb') as f:
+                    file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+                    cv_img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+                if cv_img is not None:
+                    self.display_image(cv_img)  # 선택된 파일 이미지를 표시
+                else:
+                    QMessageBox.warning(self, "오류", "이미지를 로드할 수 없습니다.")
+            except Exception as e:
+                print(f"이미지 로드 중 오류 발생: {e}")
+                QMessageBox.warning(self, "오류", "이미지를 로드하는 중 오류가 발생했습니다.")
         
-    def convert_cv_qt(self, cv_img):
-        """Convert CV image to QImage."""
-        # self.epoch = time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        cv_img = cv_img.copy()
+    def display_image(self, cv_img):
+        """이미지(QPixmap)로 변환하여 QLabel에 표시"""
         cv_img = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
         self.cp_image = cv_img.copy()        
         img_height, img_width, ch = cv_img.shape
         self.image_width = int(img_width)
         self.image_height = int(img_height)
-        # self.video_flag = True
         bytes_per_line = ch * img_width
         convert_to_Qt_format = QImage(cv_img.data, img_width, img_height, bytes_per_line, QImage.Format_RGB888)
-        p = convert_to_Qt_format.scaled(1200, 500, Qt.KeepAspectRatio,
-                                    Qt.SmoothTransformation)
-        return QPixmap.fromImage(p)
+        p = convert_to_Qt_format.scaled(1200, 500, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.target_setting_image_label.setPixmap(QPixmap.fromImage(p))
     
     
     def lbl_paintEvent(self, event):
@@ -503,10 +535,23 @@ class ST01_Setting_Widget(QDialog):
                     self.isDrawing = False
                     self.blank_lbl.update()
                     return
+
+                # 타겟 유형 선택 다이얼로그 표시
+                dialog = TargetTypeDialog(self)
+                # 타겟 유형 선택: 낮, 밤, 공통
+                if dialog.exec_() == QDialog.Accepted:
+                    target_type = dialog.get_selected_type()  # 선택된 타겟 유형 가져오기
+                else:
+                    return
+                
+                    
+                
                 self.left_range.append(self.upper_left)
                 self.right_range.append(self.lower_right)
                 self.distance.append(distance)
                 self.target_name.append("target_" + str(len(self.left_range)))
+                self.target_type.append(target_type)  # 타겟 유형 저장
+                
                 self.save_target()
                 self.isDrawing = False
                 self.end_drawing = True
@@ -569,12 +614,13 @@ class ST01_Setting_Widget(QDialog):
             result["left_range"] = self.left_range
             result["right_range"] = self.right_range
             result["distance"] = self.distance
+            result["target_type"] = self.target_type  # 타겟 유형 저장
             result.to_csv(f"{save_path}/{camera_name}.csv", mode="w", index=False)
-            self.target_name, self.left_range, self.right_range, self.distance = target_info.get_target(camera_name)
+            self.target_name, self.left_range, self.right_range, self.distance, self.target_type = target_info.get_target(camera_name)
             self.logger.info(f'Save target information')
             
         else:
-            col = ["target_name", "left_range", "right_range", "distance"]
+            col = ["target_name", "left_range", "right_range", "distance", "target_type"]
             result = pd.DataFrame(columns=col)
             result.to_csv(f"{save_path}/{camera_name}.csv", mode="w", index=False)
     
@@ -596,7 +642,7 @@ class ST01_Setting_Widget(QDialog):
         copy_image = self.cp_image.copy()
         row_count = len(self.distance)
         self.tableWidget.setRowCount(row_count)
-        self.tableWidget.setColumnCount(3)
+        self.tableWidget.setColumnCount(4)
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)        
         
         for upper_left, lower_right in zip(self.left_range, self.right_range):
@@ -627,6 +673,12 @@ class ST01_Setting_Widget(QDialog):
             item3.setTextAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
             item3.setForeground(QBrush(QColor(255, 255, 255)))
             self.tableWidget.setItem(i, 2, item3)
+            
+             # 타겟 유형 추가
+            item4 = QTableWidgetItem(self.target_type[i])  # 타겟 유형 정보
+            item4.setTextAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
+            item4.setForeground(QBrush(QColor(255, 255, 255)))
+            self.tableWidget.setItem(i, 3, item4)
             
         self.logger.info(f'Show target table')
         self.tableWidget.verticalHeader().setDefaultSectionSize(90)

@@ -36,7 +36,7 @@ class ST01MainWindow(QWidget):
         appIcon = QIcon('logo.png')
         self.setWindowIcon(appIcon)
         
-
+        self.stop_event = mp.Event()
         self.camera_name = ""
         self.video_thread = None
         self.g_ext = None
@@ -52,6 +52,14 @@ class ST01MainWindow(QWidget):
         self.logger = st01_log.CreateLogger(__name__)
         self.vis_list = []
         self.dlg = None
+        
+        # MultiProcess 선언
+        # MultiProcess의 프로세스 수 고정
+        mp.freeze_support()
+        self.q = Queue()
+        self.p = Process(name="producer", target=video_thread_mp.producer, args=(self.q, self.stop_event), daemon=True)
+        logger.info(f'Start video multiprocess')
+        self.p.start()
         
         # # JS06의 설정 정보들을 초기화 하거나 이미 있으면 패쓰
         # if os.path.isfile("D:/path_info/path_info.csv"):
@@ -87,7 +95,7 @@ class ST01MainWindow(QWidget):
         
         
         # 소산계수, 시정, 미세먼지 산출하는 쓰레드 선언
-        self.video_thread = CurveThread(VIDEO_SRC3, "Video", q)
+        self.video_thread = CurveThread(VIDEO_SRC3, "Video", self.q)
         # # 쓰레드와 시정, 미세먼지 출력 함수를 Signal 연결
         self.video_thread.update_visibility_signal.connect(self.print_data)
         # # 쓰레드 시작
@@ -225,6 +233,10 @@ class ST01MainWindow(QWidget):
     @pyqtSlot()
     def setting_btn_click(self):
         """ 설정 버튼 클릭 이벤트를 했을 때 환경설정(Setting) 창을 띄우는 함수 """
+        
+        # mp 중단
+        self.stop_event.set()
+        
         if self.dlg is None or not self.dlg.isEnabled():
             if self.radio_checked == None:
                 self.dlg = ST01_Setting_Widget("Km")
@@ -253,6 +265,10 @@ class ST01MainWindow(QWidget):
             # self.logger.info(f"{self.running_ave_checked} Conversion done")
             
             self.q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
+            
+            # mp 중단
+            self.stop_event.clear()
+            
     @pyqtSlot()
     def download_btn_click(self):
         
@@ -323,16 +339,7 @@ if __name__ == '__main__':
         logger.error(f'error_code(4245)')
         print("error_code(4245)")
         sys.exit(1)  # 프로그램 종료
-    
-    # MultiProcess 선언
-    # MultiProcess의 프로세스 수 고정
-    mp.freeze_support()
-    q = Queue()
-    p = Process(name="producer", target=video_thread_mp.producer, args=(q, ), daemon=True)
-    logger.info(f'Start video multiprocess')
-    p.start()
-    
-    
+        
     # ST01 메인 윈도우 실행
     app = QApplication(sys.argv)
     ui = ST01MainWindow()

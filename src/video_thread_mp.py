@@ -30,7 +30,7 @@ def variance_of_laplacian(image):
     # 라플라시안의 분산을 반환
     return int(laplacian.var())
 
-def producer(q):
+def producer(q, stop_event):
     proc = mp.current_process()
     camera_name = save_path_info.get_data_path("SETTING", "camera_name")
     rtsp_path = save_path_info.get_data_path("SETTING", "camera_ip")
@@ -45,14 +45,19 @@ def producer(q):
         now_time = time.time()
         epoch = time.strftime("%Y%m%d%H%M%S", time.localtime(now_time))
         
+        if stop_event.is_set():
+            # stop_event가 set되면 대기 상태로 진입
+            time.sleep(0.1)
+            continue
+        
         # 5초에 한번
-        # if int(epoch[-2:]) % 10 == 00:        
+        # if int(epoch[-2:]) % 10 == 00:  
             
         # 1분에 한번
         if epoch[-2:] == "00" :
             
             try:
-                target_name, left_range, right_range, distance = target_info.get_target(f"{camera_name}")
+                target_name, left_range, right_range, distance, target_type = target_info.get_target(f"{camera_name}")
                 
                 
                 
@@ -82,16 +87,59 @@ def producer(q):
                         pass
                                         
                     if str(method) == "EXT":
-                        
+    
                         dn_time = sun_observer.sun_observer(now_time)
                         
+                        # 타겟 정보를 낮, 밤, 공통으로 분리해서 가져옵니다.
+                        (target_name, left_range, right_range, distance, target_type) = target_info.get_target(camera_name)
+                        
+                        # 타겟 유형에 따라 낮, 밤, 공통으로 분리
+                        day_left_range = []
+                        day_right_range = []
+                        day_distance = []
+
+                        night_left_range = []
+                        night_right_range = []
+                        night_distance = []
+
+                        common_left_range = []
+                        common_right_range = []
+                        common_distance = []
+
+                        # 타겟 유형별로 분류
+                        for i, t_type in enumerate(target_type):
+                            if t_type == "daytime":
+                                day_left_range.append(left_range[i])
+                                day_right_range.append(right_range[i])
+                                day_distance.append(distance[i])
+                            elif t_type == "nighttime":
+                                night_left_range.append(left_range[i])
+                                night_right_range.append(right_range[i])
+                                night_distance.append(distance[i])
+                            elif t_type == "common":
+                                common_left_range.append(left_range[i])
+                                common_right_range.append(right_range[i])
+                                common_distance.append(distance[i])
+
+                        print("dn_time : ", dn_time)
+                        # 낮 시간일 경우: 낮 타겟 + 공통 타겟을 사용
                         if dn_time == "daytime":
-                            visibility = target_info.minprint(epoch[:-2], left_range, right_range, distance, cv_img)
+                            combined_left_range = day_left_range + common_left_range
+                            combined_right_range = day_right_range + common_right_range
+                            combined_distance = day_distance + common_distance
+                            visibility = target_info.minprint(epoch[:-2], combined_left_range, combined_right_range, combined_distance, cv_img)
+
+                        # 밤 시간일 경우: 밤 타겟 + 공통 타겟을 사용
                         else:
-                            visibility = tf_model.inference(epoch[:-2], left_range, right_range,
-                                                           distance, cv_img)
+                            combined_left_range = night_left_range + common_left_range
+                            combined_right_range = night_right_range + common_right_range
+                            combined_distance = night_distance + common_distance
+                            visibility = target_info.minprint(epoch[:-2], combined_left_range, combined_right_range, combined_distance, cv_img)
+                            # visibility = tf_model.inference(epoch[:-2], combined_left_range, combined_right_range, combined_distance, cv_img)
+                            
                         visibility = round(float(visibility), 3)
                         print("visibility : ", visibility)
+
                         
                             
                             
