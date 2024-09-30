@@ -575,23 +575,51 @@ class ST01_Setting_Widget(QDialog):
                         self.blank_lbl.update()
                         return
                     
+                    self.sort_target_by_name()
+                    
                     rm_target_name = "target_" + text
+                    print("rm_target_name : ", rm_target_name)
+                    print("self.target_name : ", self.target_name[self.target_name.index(rm_target_name)])
+                    print("self.target_type : ", self.target_type[self.target_name.index(rm_target_name)])
                     
                     if rm_target_name in self.target_name:                    
                         print(self.target_name)
                         del self.distance[self.target_name.index(rm_target_name)]                    
                         del self.left_range[self.target_name.index(rm_target_name)]
                         del self.right_range[self.target_name.index(rm_target_name)]
+                        del self.target_type[self.target_name.index(rm_target_name)] # target_type에서도 제거
                         del self.target_name[self.target_name.index(rm_target_name)]
+                        
                         self.logger.info(f'Delete target num : {text}')
                     else:
                         QMessageBox.warning(self, 'Error', '잘못된 타겟번호입니다.')
+                        
+                self.sort_target_by_name()
                 self.save_target()
                 self.show_target_table()
                 self.blank_lbl.update()
                 
                 if len(self.left_range) > 4:
                     self.chart_update()
+    
+    def sort_target_by_name(self):
+        """타겟 이름을 숫자 기준으로 오름차순 정렬하는 함수"""
+        
+        # target_name에서 숫자 부분만 추출해서 정렬
+        sorted_indices = sorted(range(len(self.target_name)), key=lambda i: int(self.target_name[i].split('_')[1]))
+        
+        # 정렬된 순서대로 모든 리스트들을 정렬
+        self.target_name = [self.target_name[i] for i in sorted_indices]
+        self.left_range = [self.left_range[i] for i in sorted_indices]
+        self.right_range = [self.right_range[i] for i in sorted_indices]
+        self.distance = [self.distance[i] for i in sorted_indices]
+        self.target_type = [self.target_type[i] for i in sorted_indices]
+
+            # 타겟 번호를 다시 1부터 매깁니다.
+        for idx in range(len(self.target_name)):
+            self.target_name[idx] = f"target_{idx + 1}"  # target_1, target_2, ... 순차적으로 배정
+            
+        self.logger.info('Target names sorted by number.')
     
     def save_target(self):
         """Save the target information for each camera."""
@@ -638,7 +666,7 @@ class ST01_Setting_Widget(QDialog):
         self.g_list = []
         self.b_list = []
         
-        
+        self.sort_target_by_name()
         copy_image = self.cp_image.copy()
         row_count = len(self.distance)
         self.tableWidget.setRowCount(row_count)

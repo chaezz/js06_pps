@@ -36,7 +36,7 @@ class TargetTypeDialog(QDialog):
 
     def get_selected_type(self):
         if self.day_radio_btn.isChecked():
-            return "day"
+            return "daytime"
         elif self.night_radio_btn.isChecked():
             return "night"
         else:

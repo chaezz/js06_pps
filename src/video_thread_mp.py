@@ -140,7 +140,7 @@ def producer(q, stop_event):
                         visibility = round(float(visibility), 3)
                         print("visibility : ", visibility)
 
-                        
+                    
                             
                             
                     
@@ -150,13 +150,22 @@ def producer(q, stop_event):
                                                             distance, cv_img)
                         logger.info(f'inferece end, visibility : {visibility_str}')
                         visibility = round(float(visibility_str), 3)
+                        
+                    
+                    if visibility > 20:
+                        visibility = 20
+                    elif visibility < 0.01:
+                        visibility = 0.01
+                    
+                    visibility_float = round(visibility, 3)    
+                    
                     ############################ 이미지 저장 #########################
                     img_path = save_path_info.get_data_path('Path', 'image_save_path')
                     img_path = os.path.join(img_path, epoch[:-6])
                     
                     os.makedirs(img_path, exist_ok=True)
                     
-                    cv2.imwrite(f'{img_path}/{epoch[:-2]}_{visibility}_{ls_text}.jpg', cv_img)
+                    cv2.imwrite(f'{img_path}/{epoch[:-2]}_{visibility_float}_{ls_text}.jpg', cv_img)
                     logger.info(f"image_save : {img_path}/{epoch[:-2]}.jpg")
                     
                     cap.release()
@@ -165,12 +174,7 @@ def producer(q, stop_event):
                     
                     ####################### 미세먼지 값, 러닝 에버리지 산출 #####################
                     
-                    if visibility > 20:
-                        visibility = 20
-                    elif visibility < 0.01:
-                        visibility = 0.01
                     
-                    visibility_float = round(visibility, 3)
                     # q_list_scale = int(save_path_info.get_data_path("SETTING", "running_average"))
                     
                     # if len(q_list) == 0 or q_list_scale != len(q_list):
