@@ -202,23 +202,35 @@ class ST01_Setting_Widget(QDialog):
     def chart_update(self):
         """세팅창 그래프를 업데이트 하는 함수"""
         
-        if len(self.left_range) < 4:
+        # 타겟 정보 가져오기 (타겟 이름, 좌표, 거리, 타겟 유형)
+        _, _, _, distance, target_type = target_info.get_target(camera_name=save_path_info.get_data_path('SETTING', 'camera_name'))
+        
+         # 낮 타겟 및 공통 타겟 필터링
+        day_indices = [i for i, t_type in enumerate(target_type) if t_type == "daytime" or t_type == "common"]
+        
+        if len(day_indices) < 5:
             print("Target을 추가해주세요")
             self.no_graph_label.show()
-            return
+            
         else:
             self.no_graph_label.hide()
             pass
             
         if self.html_verticalLayout.count() == 0:
-            self.chart_view = self.chart_draw()
-            self.html_verticalLayout.addWidget(self.chart_view)        
+            if self.chart_draw() is None:
+                return
+            else:
+                self.chart_view = self.chart_draw()
+                self.html_verticalLayout.addWidget(self.chart_view)   
         else:
-            new_chart_view = self.chart_draw()
-            self.html_verticalLayout.removeWidget(self.chart_view)
-            self.html_verticalLayout.addWidget(new_chart_view)            
-            self.html_verticalLayout.update()
-            self.chart_view = new_chart_view
+            if self.chart_draw() is None:
+                return
+            else:
+                new_chart_view = self.chart_draw()
+                self.html_verticalLayout.removeWidget(self.chart_view)
+                self.html_verticalLayout.addWidget(new_chart_view)            
+                self.html_verticalLayout.update()
+                self.chart_view = new_chart_view
             
         print("update chart!")
         self.logger.info('update chart!')
@@ -234,7 +246,7 @@ class ST01_Setting_Widget(QDialog):
         
         if len(day_indices) == 0:
             print("낮 타겟 또는 공통 타겟이 없습니다.")
-            return
+            return None
         
         # day_indices에 해당하는 낮 및 공통 타겟만 필터링
         day_distances = [distance[i] for i in day_indices]
@@ -245,18 +257,22 @@ class ST01_Setting_Widget(QDialog):
         # 데이터가 충분한지 확인
         if len(day_distances) < 2:
             print("필터링된 데이터가 부족합니다.")
-            return
+            return None
         
         # 데이터 준비
         self.logger.debug(f'distance list : {str(day_distances)}')
-        print("distance 리스트", day_distances)
         
         self.x = np.linspace(day_distances[0], day_distances[-1], 100, endpoint=True)
         self.x.sort()
-        
-        hanhwa_opt_r, hanhwa_cov_r = curve_fit(self.func, day_distances, r_list_filtered, maxfev=5000)
-        hanhwa_opt_g, hanhwa_cov_g = curve_fit(self.func, day_distances, g_list_filtered, maxfev=5000)
-        hanhwa_opt_b, hanhwa_cov_b = curve_fit(self.func, day_distances, b_list_filtered, maxfev=5000)
+        try:
+            hanhwa_opt_r, hanhwa_cov_r = curve_fit(self.func, day_distances, r_list_filtered, maxfev=5000)
+            hanhwa_opt_g, hanhwa_cov_g = curve_fit(self.func, day_distances, g_list_filtered, maxfev=5000)
+            hanhwa_opt_b, hanhwa_cov_b = curve_fit(self.func, day_distances, b_list_filtered, maxfev=5000)
+        except Exception as e:
+            print("curve error")
+            # 데이터 준비
+            self.logger.error(f'curve error')
+            
     
         
         # 차트 객체 생성
@@ -302,7 +318,10 @@ class ST01_Setting_Widget(QDialog):
             series1.setColor(QColor("Red"))
             
             for dis in self.x:
-                series1.append(*(dis, self.func(dis, *hanhwa_opt_r)))
+                try:
+                    series1.append(*(dis, self.func(dis, *hanhwa_opt_r)))
+                except Exception as e:
+                    series1.append(0)
             chart.addSeries(series1)  # 데이터 추가
             series1.attachAxis(axis_x)
             series1.attachAxis(axis_y)
@@ -316,7 +335,10 @@ class ST01_Setting_Widget(QDialog):
             series2.setPen(pen)
             series2.setColor(QColor("Green"))
             for dis in self.x:
-                series2.append(*(dis, self.func(dis, *hanhwa_opt_g)))
+                try:
+                    series2.append(*(dis, self.func(dis, *hanhwa_opt_g)))
+                except Exception as e:
+                    series2.append(0)
             chart.addSeries(series2)
             series2.attachAxis(axis_x)
             series2.attachAxis(axis_y)
@@ -330,7 +352,10 @@ class ST01_Setting_Widget(QDialog):
             series3.setPen(pen)
             series3.setColor(QColor("Blue"))
             for dis in self.x:
-                series3.append(*(dis, self.func(dis, *hanhwa_opt_b)))
+                try:
+                    series3.append(*(dis, self.func(dis, *hanhwa_opt_b)))
+                except Exception as e:
+                    series3.append(0)
             chart.addSeries(series3)
             series3.attachAxis(axis_x)
             series3.attachAxis(axis_y)
@@ -450,7 +475,6 @@ class ST01_Setting_Widget(QDialog):
             corner2_1 = int((corner2[0]-corner1[0])/self.image_width*self.blank_lbl.width())
             corner2_2 = int((corner2[1]-corner1[1])/self.image_height*self.blank_lbl.height())
             painter.drawRect(QRect(corner1_1, corner1_2, corner2_1, corner2_2))
-        
         if self.isDrawing:
             br = QBrush(QColor(100, 10, 10, 40))
             painter.setBrush(br)
@@ -503,7 +527,6 @@ class ST01_Setting_Widget(QDialog):
 
             self.leftflag = True
             self.rightflag = False
-
         # 우 클릭시 실행
         elif event.buttons() == Qt.RightButton:
             self.isDrawing = False            
@@ -605,15 +628,29 @@ class ST01_Setting_Widget(QDialog):
     def sort_target_by_name(self):
         """타겟 이름을 숫자 기준으로 오름차순 정렬하는 함수"""
         
-        # target_name에서 숫자 부분만 추출해서 정렬
-        sorted_indices = sorted(range(len(self.target_name)), key=lambda i: int(self.target_name[i].split('_')[1]))
+        # 1. 거리 순으로 먼저 정렬
+        sorted_by_distance_indices = sorted(range(len(self.distance)), key=lambda i: self.distance[i])
         
-        # 정렬된 순서대로 모든 리스트들을 정렬
-        self.target_name = [self.target_name[i] for i in sorted_indices]
-        self.left_range = [self.left_range[i] for i in sorted_indices]
-        self.right_range = [self.right_range[i] for i in sorted_indices]
-        self.distance = [self.distance[i] for i in sorted_indices]
-        self.target_type = [self.target_type[i] for i in sorted_indices]
+        # 거리 순으로 정렬된 순서대로 모든 리스트들을 정렬
+        self.target_name = [self.target_name[i] for i in sorted_by_distance_indices]
+        self.left_range = [self.left_range[i] for i in sorted_by_distance_indices]
+        self.right_range = [self.right_range[i] for i in sorted_by_distance_indices]
+        self.distance = [self.distance[i] for i in sorted_by_distance_indices]
+        self.target_type = [self.target_type[i] for i in sorted_by_distance_indices]
+
+        # 2. 거리 순으로 정렬된 순서에 맞춰 타겟 이름을 다시 지정
+        for idx in range(len(self.target_name)):
+            self.target_name[idx] = f"target_{idx + 1}"  # 거리 순에 맞춰 target_1, target_2, ... 로 재지정
+        
+        # 3. 그 다음 타겟 이름을 숫자 기준으로 정렬
+        sorted_by_name_indices = sorted(range(len(self.target_name)), key=lambda i: int(self.target_name[i].split('_')[1]))
+
+        # 정렬된 순서대로 모든 리스트들을 다시 정렬
+        self.target_name = [self.target_name[i] for i in sorted_by_name_indices]
+        self.left_range = [self.left_range[i] for i in sorted_by_name_indices]
+        self.right_range = [self.right_range[i] for i in sorted_by_name_indices]
+        self.distance = [self.distance[i] for i in sorted_by_name_indices]
+        self.target_type = [self.target_type[i] for i in sorted_by_name_indices]
 
             # 타겟 번호를 다시 1부터 매깁니다.
         for idx in range(len(self.target_name)):
@@ -675,6 +712,7 @@ class ST01_Setting_Widget(QDialog):
         
         for upper_left, lower_right in zip(self.left_range, self.right_range):
             result = target_info.minrgb(upper_left, lower_right, copy_image)
+            # result = target_info.maxrgb(upper_left, lower_right, copy_image)
             min_x.append(result[0])
             min_y.append(result[1])
             
@@ -686,7 +724,7 @@ class ST01_Setting_Widget(QDialog):
             
             # 이미지 넣기            
             crop_image = copy_image[min_y[i] - 50: min_y[i] + 50, min_x[i] - 50: min_x[i] + 50, :].copy()
-            cv2.rectangle(crop_image, (40, 40), (60, 60), (127, 0, 255), 2)
+            # cv2.rectangle(crop_image, (40, 40), (60, 60), (127, 0, 255), 2)
             item1 = self.getImagelabel(crop_image)
             self.tableWidget.setCellWidget(i, 0, item1)
 

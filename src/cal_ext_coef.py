@@ -70,7 +70,7 @@ def cal_curve(hanhwa: pd.DataFrame):
     except Exception as e:
         print("error msg: ", e)
         logger.error(e)
-        return
+        return [0,0,0], [0,0,0], [0,0,0], "red"
     list1 = []
     list2 = []
     list3 = []

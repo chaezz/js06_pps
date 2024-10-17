@@ -31,8 +31,10 @@ def minprint(epoch, left_range, right_range, distance, cv_img):
     # 낮에는 minrgb, 밤에는 maxrgb 사용
     if dn_time == "daytime":
         rgb_func = minrgb
+        print("minrgb!")
     else:
         rgb_func = maxrgb
+        print("maxrgb!")
 
     for upper_left, lower_right in zip(left_range, right_range):
         result = rgb_func(upper_left, lower_right, cp_image)
@@ -75,10 +77,10 @@ def minrgb(upper_left, lower_right, cp_image):
     g = test[:, :, 1]
     b = test[:, :, 2]
 
-    r = np.clip(r, 0, 765)
-    sum_rgb = r + g + b
+    # 각 픽셀의 RGB 합계 계산 (최대 765)
+    sum_rgb = r.astype(np.int32) + g.astype(np.int32) + b.astype(np.int32)
 
-    t_idx = np.where(sum_rgb == np.min(sum_rgb))
+    t_idx = np.unravel_index(np.argmin(sum_rgb), sum_rgb.shape)
     
     # print("red : ", cp_image[t_idx[0][0] + up_y, t_idx[1][0] + left_x,0])
     # print("green : ", cp_image[t_idx[0][0] + up_y, t_idx[1][0] + left_x,1])
@@ -97,10 +99,10 @@ def maxrgb(upper_left, lower_right, cp_image):
 
     test = cp_image[up_y:down_y, left_x:right_x, :]
     r, g, b = test[:, :, 0], test[:, :, 1], test[:, :, 2]
-    r, g, b = np.clip(r, 0, 765), np.clip(g, 0, 765), np.clip(b, 0, 765)
+    # r, g, b = np.clip(r, 0, 765), np.clip(g, 0, 765), np.clip(b, 0, 765)
 
-    sum_rgb = r + g + b
-    t_idx = np.where(sum_rgb == np.max(sum_rgb))  # 최대값을 찾음
+    sum_rgb = r.astype(np.int32) + g.astype(np.int32) + b.astype(np.int32)
+    t_idx = np.unravel_index(np.argmax(sum_rgb), sum_rgb.shape)
     show_max_y = t_idx[0][0] + up_y
     show_max_x = t_idx[1][0] + left_x
 
@@ -272,6 +274,9 @@ def extinc_print(c1_list: list = [0, 0, 0], c2_list: list = [0, 0, 0], alp_list:
 
 def visibility_print(ext_g: float = 0.0):
     """Print the visibility based on day/night time"""
+    if ext_g == 0:
+        return "0"
+    print("ext_g : ", ext_g)
     vis_value = 0
     cam_name = save_path_info.get_data_path('SETTING', 'camera_name')
     
@@ -287,14 +292,15 @@ def visibility_print(ext_g: float = 0.0):
         filtered_distance = [dist for dist, t_type in zip(distance, target_type) if t_type == "daytime" or t_type == "common"]
     else:
         # 밤 시간이라면 밤 타겟과 공통 타겟 중에서 최대 거리 선택
-        filtered_distance = [dist for dist, t_type in zip(distance, target_type) if t_type == "nighttime" or t_type == "common"]
+        filtered_distance = [dist for dist, t_type in zip(distance, target_type) if t_type == "night" or t_type == "common"]
     
     # 최대 거리 설정
     try:
         max_value = float(max(filtered_distance))  # 최대 거리 값을 찾음
     except Exception as e:
         max_value = 20  # 기본 최대 거리값
-
+    
+    
     # 소산 계수를 바탕으로 시정 계산
     vis_value = 3.912 / ext_g
     if vis_value > max_value:

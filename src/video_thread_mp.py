@@ -112,7 +112,7 @@ def producer(q, stop_event):
                                 day_left_range.append(left_range[i])
                                 day_right_range.append(right_range[i])
                                 day_distance.append(distance[i])
-                            elif t_type == "nighttime":
+                            elif t_type == "night":
                                 night_left_range.append(left_range[i])
                                 night_right_range.append(right_range[i])
                                 night_distance.append(distance[i])
@@ -124,16 +124,34 @@ def producer(q, stop_event):
                         print("dn_time : ", dn_time)
                         # 낮 시간일 경우: 낮 타겟 + 공통 타겟을 사용
                         if dn_time == "daytime":
-                            combined_left_range = day_left_range + common_left_range
-                            combined_right_range = day_right_range + common_right_range
-                            combined_distance = day_distance + common_distance
+                            # 1. 리스트들을 묶어서 정렬 (거리 기준으로)
+                            combined_data = list(zip(
+                                day_left_range + common_left_range,
+                                day_right_range + common_right_range,
+                                day_distance + common_distance
+                            ))
+
+                            # 거리 (세 번째 요소) 기준으로 정렬
+                            sorted_data = sorted(combined_data, key=lambda x: x[2])
+
+                            # 2. 정렬된 데이터를 다시 분해 (unzip)
+                            combined_left_range, combined_right_range, combined_distance = zip(*sorted_data)
                             visibility = target_info.minprint(epoch[:-2], combined_left_range, combined_right_range, combined_distance, cv_img)
 
                         # 밤 시간일 경우: 밤 타겟 + 공통 타겟을 사용
                         else:
-                            combined_left_range = night_left_range + common_left_range
-                            combined_right_range = night_right_range + common_right_range
-                            combined_distance = night_distance + common_distance
+                            # 1. 리스트들을 묶어서 정렬 (거리 기준으로)
+                            combined_data = list(zip(
+                                night_left_range + common_left_range,
+                                night_right_range + common_right_range,
+                                night_distance + common_distance
+                            ))
+
+                            # 거리 (세 번째 요소) 기준으로 정렬
+                            sorted_data = sorted(combined_data, key=lambda x: x[2])
+
+                            # 2. 정렬된 데이터를 다시 분해 (unzip)
+                            combined_left_range, combined_right_range, combined_distance = zip(*sorted_data)
                             visibility = target_info.minprint(epoch[:-2], combined_left_range, combined_right_range, combined_distance, cv_img)
                             # visibility = tf_model.inference(epoch[:-2], combined_left_range, combined_right_range, combined_distance, cv_img)
                             
